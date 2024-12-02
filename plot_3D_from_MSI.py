@@ -25,12 +25,12 @@ def cross_weighted_algorithm(horizontal_angles, vertical_angles,
     # let us get started with our computations
     G_w_theta_phi = [] # this is where we will save our results
     for hor_angle in range(len(horizontal_angles)):
-        # for ver_angle in range(len(vertical_angles)):
+        for ver_angle in range(len(vertical_angles)):
         
-        if hor_angle < len(vertical_angles): # we no longer need this conditional
+            # if hor_angle < len(vertical_angles): # we no longer need this conditional
             # let us normalize our linear gains
             g_h_phi_i = (hor_gains_linear[hor_angle] - np.min(hor_gains_linear))/(np.max(hor_gains_linear) - np.min(hor_gains_linear))
-            g_v_theta_i = (ver_gains_linear[hor_angle] - np.min(ver_gains_linear))/(np.max(ver_gains_linear) - np.min(ver_gains_linear))
+            g_v_theta_i = (ver_gains_linear[ver_angle] - np.min(ver_gains_linear))/(np.max(ver_gains_linear) - np.min(ver_gains_linear))
 
             # Check if all values are within the range [0, 1]
             '''if np.all((g_h_phi_i >= 0) & (g_h_phi_i <= 1)) and np.all((g_v_theta_i >= 0) & (g_v_theta_i <= 1)):
@@ -50,12 +50,6 @@ def cross_weighted_algorithm(horizontal_angles, vertical_angles,
             k = 2 # normalization value
             G_w_theta_phi_i = (G_h_phi_dB_i*w1_theta_phi_i + G_v_theta_dB_i*w2_theta_phi_i)/((w1_theta_phi_i**(k)+w2_theta_phi_i**(k))**(1/k))
             G_w_theta_phi.append(G_w_theta_phi_i)
-
-        else:
-            # let us normalize our linear gains
-            g_h_phi_i = (hor_gains_linear[hor_angle] - np.min(hor_gains_linear))/(np.max(hor_gains_linear) - np.min(hor_gains_linear))
-            G_h_phi_dB_i = 10*np.log10(g_h_phi_i)
-            G_w_theta_phi.append(G_h_phi_dB_i) # note that in this case the antenna pattern gain will only be characterized by the horizontal plane gain values
 
     return G_w_theta_phi
 
