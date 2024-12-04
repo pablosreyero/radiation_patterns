@@ -19,13 +19,22 @@ def cross_weighted_algorithm(horizontal_angles, vertical_angles, horizontal_gain
     G_w_theta_phi = np.zeros((len(horizontal_angles), len(vertical_angles)))
     print(f"Horizontal gains: {horizontal_gains}")
     print(f"Vertical gains: {vertical_gains}")
+
+    # constant to check the first values of both vertical and horizontal planes
+    a = 0
+
     # Loop through horizontal and vertical angles
-    for i, horizontal_gain in enumerate(horizontal_gains):
-        for j, vertical_gain in enumerate(vertical_gains):
+    for i, horizontal_gain in enumerate(horizontal_angles):
+        for j, vertical_gain in enumerate(vertical_angles):
+
+            if a <= 3:
+                print(f"These are the gain values for the HORIZONTAL plane: {horizontal_gain}")
+                print(f"These are the gain values for the VERTICAL plane: {vertical_gain}")
+                a += 1
 
             # Normalize linear gains
-            g_h_phi_i = (horizontal_gain - np.min(hor_gains_linear)) / (np.max(hor_gains_linear) - np.min(hor_gains_linear))
-            g_v_theta_i = (vertical_gain - np.min(ver_gains_linear)) / (np.max(ver_gains_linear) - np.min(ver_gains_linear))
+            g_h_phi_i = (horizontal_gains[i] - np.min(hor_gains_linear)) / (np.max(hor_gains_linear) - np.min(hor_gains_linear))
+            g_v_theta_i = (vertical_gains[j] - np.min(ver_gains_linear)) / (np.max(ver_gains_linear) - np.min(ver_gains_linear))
 
             # Compute weight functions
             w1_theta_phi_i = g_v_theta_i * (1 - g_h_phi_i)
@@ -40,7 +49,8 @@ def cross_weighted_algorithm(horizontal_angles, vertical_angles, horizontal_gain
             G_w_theta_phi[i, j] = (G_h_phi_dB_i * w1_theta_phi_i + G_v_theta_dB_i * w2_theta_phi_i) / (
                 (w1_theta_phi_i**k + w2_theta_phi_i**k)**(1/k)
             )
-
+    print(f"These are the values for i and j: {i}, {j}")
+    print(f"This is the shape of G_w_theta_phi: {np.shape(G_w_theta_phi)}")
     return G_w_theta_phi
 
 # Load the data from the file
@@ -75,7 +85,7 @@ with open(path, 'r') as file:
             horizontal_gains.append(gain)
         elif vertical_section:
             angle, gain = map(float, line.strip().split())
-            if angle <= 180:  # Only process angles less than or equal to 180 degrees
+            if angle < 180:  # Only process angles less than or equal to 180 degrees
                 vertical_angles.append(np.radians(angle))
                 vertical_gains.append(gain)
 
@@ -90,12 +100,16 @@ if len(horizontal_angles) == len(horizontal_gains):
 # Convert horizontal angles to a NumPy array and adjust range to [-pi, pi]
 horizontal_angles = np.array(horizontal_angles)
 horizontal_angles_converted = np.where(horizontal_angles > np.pi, horizontal_angles - 2 * np.pi, horizontal_angles)
-horizontal_gains = np.array(horizontal_gains)
+# horizontal_gains_2 = [3.10 + x for x in horizontal_gains]
+horizontal_gains_2 = [(3.10 + x) if (3.10 + x) <= 3.10 else (3.10 - x) for x in horizontal_gains]
+horizontal_gains = np.array(horizontal_gains_2)
 
 # Convert vertical angles to a NumPy array and adjust range to [0, pi]
 vertical_angles = np.array(vertical_angles)
 vertical_angles_converted = np.where(vertical_angles > np.pi, 2 * np.pi - vertical_angles, vertical_angles)
-vertical_gains = np.array(vertical_gains)
+# vertical_gains_2 = [3.10 + x for x in vertical_gains]
+vertical_gains_2 = [(3.10 + x) if (3.10 + x) <= 3.10 else (3.10 - x) for x in vertical_gains]
+vertical_gains = np.array(vertical_gains_2)
 
 # Call the cross-weighted algorithm
 weighted_antenna_gains = cross_weighted_algorithm(
