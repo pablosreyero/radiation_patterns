@@ -33,8 +33,13 @@ def cross_weighted_algorithm(horizontal_angles, vertical_angles, horizontal_gain
                 a += 1
 
             # Normalize linear gains
-            g_h_phi_i = (horizontal_gains[i] - np.min(hor_gains_linear)) / (np.max(hor_gains_linear) - np.min(hor_gains_linear))
-            g_v_theta_i = (vertical_gains[j] - np.min(ver_gains_linear)) / (np.max(ver_gains_linear) - np.min(ver_gains_linear))
+            g_h_phi_i = (hor_gains_linear[i] - np.min(hor_gains_linear)) / (np.max(hor_gains_linear) - np.min(hor_gains_linear))
+            g_v_theta_i = (ver_gains_linear[j] - np.min(ver_gains_linear)) / (np.max(ver_gains_linear) - np.min(ver_gains_linear))
+
+            # check that both values are between 0 and 1
+            if (g_h_phi_i>1 or g_h_phi_i<0) and (g_v_theta_i>1 or g_v_theta_i<0):
+                print('One of the normalized values is not inside (0, ..., 1)')
+                exit()
 
             # Compute weight functions
             w1_theta_phi_i = g_v_theta_i * (1 - g_h_phi_i)
@@ -46,7 +51,7 @@ def cross_weighted_algorithm(horizontal_angles, vertical_angles, horizontal_gain
 
             # Compute weighted antenna gain
             k = 2  # Normalization parameter
-            G_w_theta_phi[i, j] = (G_h_phi_dB_i * w1_theta_phi_i + G_v_theta_dB_i * w2_theta_phi_i) / (
+            G_w_theta_phi[i, j] = (G_h_phi_dB_i) * w1_theta_phi_i/((w1_theta_phi_i**k + w2_theta_phi_i**k)**(1/k)) + (G_v_theta_dB_i) * w2_theta_phi_i / (
                 (w1_theta_phi_i**k + w2_theta_phi_i**k)**(1/k)
             )
     print(f"These are the values for i and j: {i}, {j}")
