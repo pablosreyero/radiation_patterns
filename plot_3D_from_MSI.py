@@ -2,6 +2,77 @@ import numpy as np
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 
+def msi_file_reader(msi_path):
+    """
+    This function reads the most relevant information out of an .msi file
+    to further reconstruct the 3D radiation pattern of a given antenna
+
+    Input:
+    - msi_path (str) --> A sting containing the path to the .msi file
+
+    Otuputs:
+    - horizontal_angles ()
+    - horizontal_gains ()
+    - vertical_angles ()
+    - vertical_gains ()
+    """
+
+    # Initialize lists to hold the angles and gains for horizontal and vertical patterns
+    horizontal_angles = []
+    horizontal_gains = []
+    vertical_angles = []
+    vertical_gains = []
+
+    # Parse the .msi file
+    with open(msi_path, 'r') as file:
+        lines = file.readlines()
+        horizontal_section = False
+        vertical_section = False
+        for line in lines:
+            # Identify sections
+            if "HORIZONTAL" in line:
+                horizontal_section = True
+                vertical_section = False
+                continue
+            elif "VERTICAL" in line:
+                vertical_section = True
+                horizontal_section = False
+                continue
+
+            # Parse angles and gains
+            if horizontal_section:
+                angle, gain = map(float, line.strip().split())
+                horizontal_angles.append(np.radians(angle))
+                horizontal_gains.append(gain)
+            elif vertical_section:
+                angle, gain = map(float, line.strip().split())
+                if angle < 180:  # Only process angles less than or equal to 180 degrees
+                    vertical_angles.append(np.radians(angle))
+                    vertical_gains.append(gain)
+
+        # test if vertical gains and vertical angles have the same shape or not 
+        if len(vertical_angles) == len(vertical_gains):
+            print(f"Both lists (ANGLES & GAINS) on the VERTICAL plane have the same length")
+
+        # repeat for the horizontal plane
+        if len(horizontal_angles) == len(horizontal_gains):
+            print(f"Both lists (ANGLES & GAINS) on the HORIZONTAL plane have the same length")
+
+        # Convert horizontal angles to a NumPy array and adjust range to [-pi, pi]
+        horizontal_angles = np.array(horizontal_angles)
+        horizontal_angles_converted = np.where(horizontal_angles > np.pi, horizontal_angles - 2 * np.pi, horizontal_angles)
+        # horizontal_gains_2 = [3.10 + x for x in horizontal_gains]
+        horizontal_gains_2 = [(3.10 + x) if (3.10 + x) <= 3.10 else (3.10 - x) for x in horizontal_gains]
+        horizontal_gains = np.array(horizontal_gains_2)
+
+        # Convert vertical angles to a NumPy array and adjust range to [0, pi]
+        vertical_angles = np.array(vertical_angles)
+        vertical_angles_converted = np.where(vertical_angles > np.pi, 2 * np.pi - vertical_angles, vertical_angles)
+        # vertical_gains_2 = [3.10 + x for x in vertical_gains]
+        vertical_gains_2 = [(3.10 + x) if (3.10 + x) <= 3.10 else (3.10 - x) for x in vertical_gains]
+        vertical_gains = np.array(vertical_gains_2)
+
+
 # Definition of the interpolation method
 def cross_weighted_algorithm(horizontal_angles, vertical_angles, horizontal_gains, vertical_gains):
     '''
@@ -60,61 +131,6 @@ def cross_weighted_algorithm(horizontal_angles, vertical_angles, horizontal_gain
 
 # Load the data from the file
 path = '80010465_0791_x_co.msi'
-
-# Initialize lists to hold the angles and gains for horizontal and vertical patterns
-horizontal_angles = []
-horizontal_gains = []
-vertical_angles = []
-vertical_gains = []
-
-# Parse the .msi file
-with open(path, 'r') as file:
-    lines = file.readlines()
-    horizontal_section = False
-    vertical_section = False
-    for line in lines:
-        # Identify sections
-        if "HORIZONTAL" in line:
-            horizontal_section = True
-            vertical_section = False
-            continue
-        elif "VERTICAL" in line:
-            vertical_section = True
-            horizontal_section = False
-            continue
-
-        # Parse angles and gains
-        if horizontal_section:
-            angle, gain = map(float, line.strip().split())
-            horizontal_angles.append(np.radians(angle))
-            horizontal_gains.append(gain)
-        elif vertical_section:
-            angle, gain = map(float, line.strip().split())
-            if angle < 180:  # Only process angles less than or equal to 180 degrees
-                vertical_angles.append(np.radians(angle))
-                vertical_gains.append(gain)
-
-# test if vertical gains and vertical angles have the same shape or not 
-if len(vertical_angles) == len(vertical_gains):
-    print(f"Both lists (ANGLES & GAINS) on the VERTICAL plane have the same length")
-
-# repeat for the horizontal plane
-if len(horizontal_angles) == len(horizontal_gains):
-    print(f"Both lists (ANGLES & GAINS) on the HORIZONTAL plane have the same length")
-
-# Convert horizontal angles to a NumPy array and adjust range to [-pi, pi]
-horizontal_angles = np.array(horizontal_angles)
-horizontal_angles_converted = np.where(horizontal_angles > np.pi, horizontal_angles - 2 * np.pi, horizontal_angles)
-# horizontal_gains_2 = [3.10 + x for x in horizontal_gains]
-horizontal_gains_2 = [(3.10 + x) if (3.10 + x) <= 3.10 else (3.10 - x) for x in horizontal_gains]
-horizontal_gains = np.array(horizontal_gains_2)
-
-# Convert vertical angles to a NumPy array and adjust range to [0, pi]
-vertical_angles = np.array(vertical_angles)
-vertical_angles_converted = np.where(vertical_angles > np.pi, 2 * np.pi - vertical_angles, vertical_angles)
-# vertical_gains_2 = [3.10 + x for x in vertical_gains]
-vertical_gains_2 = [(3.10 + x) if (3.10 + x) <= 3.10 else (3.10 - x) for x in vertical_gains]
-vertical_gains = np.array(vertical_gains_2)
 
 # Call the cross-weighted algorithm
 weighted_antenna_gains = cross_weighted_algorithm(
