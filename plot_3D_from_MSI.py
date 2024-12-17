@@ -66,8 +66,10 @@ def msi_file_reader(msi_path):
                 vertical_gains.append(gain)
 
         # let us convert both gain lists into tensorflow
-        horizontal_gains = tf.constant(horizontal_gains)
-        vertical_gains = tf.constant(vertical_gains)
+        # horizontal_gains = tf.constant(horizontal_gains)
+        # vertical_gains = tf.constant(vertical_gains)
+        horizontal_gains = np.array(horizontal_gains)
+        vertical_gains = np.array(vertical_gains)
 
     return antenna_gain, horizontal_gains, vertical_gains
 
@@ -153,6 +155,10 @@ if __name__ == '__main__':
 
     # let us read the given .msi file
     antenna_gain, horizontal_gains, vertical_gains = msi_file_reader(path)
+
+    print(f"Este es el tipo de variable de VERTICAL: {type(vertical_gains)}")
+    print(f"Este es el tipo de variable de HORIZONTAL: {type(horizontal_gains)}")
+
     print(f'This is the antenna GAIN: {antenna_gain}')
     print(f'These are the HORIZONTAL GAINS of the antenna: {horizontal_gains}')
     print(f'These are the VERTICAL GAINS of the antenna: {vertical_gains}')
@@ -179,7 +185,15 @@ if __name__ == '__main__':
     # Shift the theta values to range from -pi to pi
     theta_shifted = np.where(theta > PI, theta - 2*PI, theta)
     sorted_indices = np.argsort(theta_shifted)
+
+    print(f"This is the VALUE of gain_h: {gain_h_temp}")
+    print(f"This is the SHAPE of gain_h: {np.shape(gain_h_temp)}")
+
+    print(f"\nThese are the values of the sorted_indices: {sorted_indices}")
+    print(f"\nThis is the shape of the variable: sorted_indices: {np.shape(sorted_indices)}")
+
     gain_h = gain_h_temp[sorted_indices]
+
 
     # Once angles and gain in the MSI file has been parse to be aligned with the spherical coordinate 
     # we can work with the variables (theta,phi).
