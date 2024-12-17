@@ -1,6 +1,8 @@
+import re
 import numpy as np
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
+import tensorflow as tf
 
 def msi_file_reader(msi_path):
     """
@@ -11,23 +13,32 @@ def msi_file_reader(msi_path):
     - msi_path (str) --> A sting containing the path to the .msi file
 
     Otuputs:
-    - horizontal_angles ()
-    - horizontal_gains ()
-    - vertical_angles ()
-    - vertical_gains ()
+    - horizontal_gains (tf.constant)
+    - vertical_gains (tf.constant)
+    - antenna_gain (float)
     """
 
     # Initialize lists to hold the angles and gains for horizontal and vertical patterns
-    # horizontal_angles = []
     horizontal_gains = []
-    # vertical_angles = []
     vertical_gains = []
 
     # Parse the .msi file
     with open(msi_path, 'r') as file:
+        for line in file: # let us firstly search for the antenna gain
+            # Use regex to match the 'GAIN' keyword and extract the value
+            match = re.search(r"GAIN\s+([\d.]+)\s*dBd", line, re.IGNORECASE)
+            if match:
+                antenna_gain = float(match.group(1))
+                antenna_gain = antenna_gain + 2.15 # turn dBds into dBis
+                break
+            else:
+                print(f'No antenna GAIN detected !!')
+
+        # let us extract both horizontal and vertical gains
         lines = file.readlines()
         horizontal_section = False
         vertical_section = False
+
         for line in lines:
             # Identify sections
             if "HORIZONTAL" in line:
@@ -42,45 +53,34 @@ def msi_file_reader(msi_path):
             # Parse angles and gains
             if horizontal_section:
                 _, gain = map(float, line.strip().split())
-                # horizontal_angles.append(np.radians(angle))
                 horizontal_gains.append(gain)
             elif vertical_section:
                 _, gain = map(float, line.strip().split())
-                # if angle < 180:  # Only process angles less than or equal to 180 degrees
-                    # vertical_angles.append(np.radians(angle))
                 vertical_gains.append(gain)
 
-        # test if vertical gains and vertical angles have the same shape or not 
-        '''if len(vertical_angles) == len(vertical_gains):
-            print(f"Both lists (ANGLES & GAINS) on the VERTICAL plane have the same length")'''
+        # let us convert both gain lists into tensorflow
+        horizontal_gains = tf.constant(horizontal_gains)
+        vertical_gains = tf.constant(vertical_gains)
 
-        # repeat for the horizontal plane
-        '''if len(horizontal_angles) == len(horizontal_gains):
-            print(f"Both lists (ANGLES & GAINS) on the HORIZONTAL plane have the same length")'''
-
-        # Convert horizontal angles to a NumPy array and adjust range to [-pi, pi]
-        # horizontal_angles = np.array(horizontal_angles)
-        # horizontal_angles_converted = np.where(horizontal_angles > np.pi, horizontal_angles - 2 * np.pi, horizontal_angles)
-        # horizontal_gains_2 = [3.10 + x for x in horizontal_gains]
-        
-        horizontal_gains_2 = [(3.10 + x) if (3.10 + x) <= 3.10 else (3.10 - x) for x in horizontal_gains]
-        horizontal_gains = np.array(horizontal_gains_2)
-
-        # Convert vertical angles to a NumPy array and adjust range to [0, pi]
-        vertical_angles = np.array(vertical_angles)
-        vertical_angles_converted = np.where(vertical_angles > np.pi, 2 * np.pi - vertical_angles, vertical_angles)
-        # vertical_gains_2 = [3.10 + x for x in vertical_gains]
-        vertical_gains_2 = [(3.10 + x) if (3.10 + x) <= 3.10 else (3.10 - x) for x in vertical_gains]
-        vertical_gains = np.array(vertical_gains_2)
+    return antenna_gain, horizontal_gains, vertical_gains
 
 
-# Definition of the interpolation method
-def cross_weighted_algorithm(horizontal_angles, vertical_angles, horizontal_gains, vertical_gains):
+def cross_weighted_algorithm(antenna_gain, horizontal_gains, vertical_gains):
     '''
     This function takes as input both horizontal and vertical converted
     angles as well as their associated gains. The aim is to reconstruct in
     3D the radiation pattern, given its .msi file.
     The function outputs the antenna gain on both angles.
+
+    Inputs:
+    - antenna_gain (float) -> The gain of the antenna, read from the .msi file
+    - horizontal_gains (tf.constant) -> A file containing the gains from the
+        horizontal plane of the antenna.
+    - vertical_gains (tf.constant) -> A file containing the gains from the
+        vertical plane of the antenna.
+
+    Outputs:
+    - 
     '''
 
     # Convert gains from dB to linear scale
@@ -130,38 +130,50 @@ def cross_weighted_algorithm(horizontal_angles, vertical_angles, horizontal_gain
     print(f"This is the shape of G_w_theta_phi: {np.shape(G_w_theta_phi)}")
     return G_w_theta_phi
 
-# Load the data from the file
-path = '80010465_0791_x_co.msi'
+if __name__ == '__main__':
+    # Load the data from the file
+    path = '80010465_0791_x_co.msi'
 
-# Call the cross-weighted algorithm
-weighted_antenna_gains = cross_weighted_algorithm(
-    horizontal_angles_converted,
-    vertical_angles_converted,
-    horizontal_gains,
-    vertical_gains
-)
+    # let us read the given .msi file
+    antenna_gain, horizontal_gains, vertical_gains = msi_file_reader(path)
+    print(f'This is the antenna GAIN: {antenna_gain}')
+    print(f'These are the HORIZONTAL GAINS of the antenna: {horizontal_gains}')
+    print(f'These are the VERTICAL GAINS of the antenna: {vertical_gains}')
 
-# Create a mesh grid for azimuth and elevation angles
-azimuth, elevation = np.meshgrid(horizontal_angles_converted, vertical_angles_converted, indexing='ij')
+    # only select gains associated to angles liying on the positive side of the x plane, i.e., 1st and 4th quadrant
+    
 
-# Convert spherical to Cartesian coordinates for plotting
-x = weighted_antenna_gains * np.sin(elevation) * np.cos(azimuth)
-y = weighted_antenna_gains * np.sin(elevation) * np.sin(azimuth)
-z = weighted_antenna_gains * np.cos(elevation)
 
-# Plotting the 3D radiation pattern
-fig = plt.figure(figsize=(10, 8))
-ax = fig.add_subplot(111, projection='3d')
-surface = ax.plot_surface(x, y, z, cmap='jet', edgecolor='k', alpha=0.6)
+    '''# Call the cross-weighted algorithm
+    weighted_antenna_gains = cross_weighted_algorithm(
+        horizontal_angles_converted,
+        vertical_angles_converted,
+        horizontal_gains,
+        vertical_gains
+    )
 
-# Add color bar with dB label and title formatting
-colorbar = fig.colorbar(surface, ax=ax, shrink=0.5, aspect=10)
-colorbar.set_label("Gain (dB)")
+    # Create a mesh grid for azimuth and elevation angles
+    azimuth, elevation = np.meshgrid(horizontal_angles_converted, vertical_angles_converted, indexing='ij')
 
-# Set title and labels
-ax.set_title(r"3D Radiation Pattern $G(\theta, \varphi)$")
-ax.set_xlabel(r"$x$")
-ax.set_ylabel(r"$y$")
-ax.set_zlabel(r"$z$")
+    # Convert spherical to Cartesian coordinates for plotting
+    x = weighted_antenna_gains * np.sin(elevation) * np.cos(azimuth)
+    y = weighted_antenna_gains * np.sin(elevation) * np.sin(azimuth)
+    z = weighted_antenna_gains * np.cos(elevation)
 
-plt.show()
+    # Plotting the 3D radiation pattern
+    fig = plt.figure(figsize=(10, 8))
+    ax = fig.add_subplot(111, projection='3d')
+    surface = ax.plot_surface(x, y, z, cmap='jet', edgecolor='k', alpha=0.6)
+
+    # Add color bar with dB label and title formatting
+    colorbar = fig.colorbar(surface, ax=ax, shrink=0.5, aspect=10)
+    colorbar.set_label("Gain (dB)")
+
+    # Set title and labels
+    ax.set_title(r"3D Radiation Pattern $G(\theta, \varphi)$")
+    ax.set_xlabel(r"$x$")
+    ax.set_ylabel(r"$y$")
+    ax.set_zlabel(r"$z$")
+
+    plt.show()
+'''
