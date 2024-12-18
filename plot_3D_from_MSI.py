@@ -210,6 +210,7 @@ if __name__ == '__main__':
     # visualize the antenna pattern
     fig_v, fig_h, fig_3d = visualize(custom_pattern)
 
+
     '''# Call the cross-weighted algorithm
     weighted_antenna_gains = cross_weighted_algorithm(
         horizontal_angles_converted,
