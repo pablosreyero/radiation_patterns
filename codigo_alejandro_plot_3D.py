@@ -37,6 +37,9 @@ def plot3D (weighted_antenna_gains):
 
     # g = np.transpose(10**(MATLAB_3D_pattern/10))
     g = weighted_antenna_gains
+    
+    print("This is the shape of the summing resulting gain: ", {np.shape(g)})
+
     x = g * np.sin(theta_grid) * np.cos(phi_grid)
     y = g * np.sin(theta_grid) * np.sin(phi_grid)
     z = g * np.cos(theta_grid)
@@ -55,7 +58,7 @@ def plot3D (weighted_antenna_gains):
             x -= x_min
             x /= np.abs(x_max-x_min)
         return x
-     
+
     g_db_min = np.min(g_db)
     g_db_max = np.max(g_db)
      
